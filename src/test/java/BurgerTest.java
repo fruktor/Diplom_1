@@ -1,18 +1,22 @@
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
 import praktikum.Bun;
 import praktikum.Burger;
 import praktikum.Ingredient;
 import praktikum.IngredientType;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(Parameterized.class)
 public class BurgerTest {
 
     private Burger burger;
@@ -21,14 +25,37 @@ public class BurgerTest {
     Bun bun;
 
     @Mock
-    Ingredient ingredient;
+    Ingredient firstIngredient;
 
     @Mock
-    Ingredient ingredient1;
+    Ingredient secondIngredient;
 
+
+    private final String bunName;
+    private final float bunPrice;
+    private final IngredientType ingredientType;
+    private final String ingredientName;
+    private final float ingredientPrice;
+
+    public BurgerTest(String bunName, float bunPrice, IngredientType ingredientType, String ingredientName, float ingredientPrice) {
+        this.bunName = bunName;
+        this.bunPrice = bunPrice;
+        this.ingredientType = ingredientType;
+        this.ingredientName = ingredientName;
+        this.ingredientPrice = ingredientPrice;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> testData() {
+        return Arrays.asList(new Object[][]{
+                {"Булочка с кунжутом", 100f, IngredientType.SAUCE, "Соус Барбекю", 20f},
+                {"Ржаная булочка", 150f, IngredientType.FILLING, "Котлета из говядины", 70f}
+        });
+    }
 
     @Before
     public void setUp() {
+        MockitoAnnotations.initMocks(this);
         burger = new Burger();
     }
 
@@ -40,13 +67,13 @@ public class BurgerTest {
 
     @Test
     public void addIngredientTest() {
-        burger.addIngredient(ingredient);
-        assertTrue(burger.ingredients.contains(ingredient));
+        burger.addIngredient(firstIngredient);
+        assertTrue(burger.ingredients.contains(firstIngredient));
     }
 
     @Test
     public void removeIngredientTest() {
-        burger.addIngredient(ingredient);
+        burger.addIngredient(firstIngredient);
         burger.removeIngredient(0);
 
         assertEquals(0, burger.ingredients.size());
@@ -55,47 +82,46 @@ public class BurgerTest {
     @Test
     public void moveIngredientTest() {
 
-        burger.addIngredient(ingredient);
-        burger.addIngredient(ingredient1);
+        burger.addIngredient(firstIngredient);
+        burger.addIngredient(secondIngredient);
 
         burger.moveIngredient(0, 1);
 
-        assertEquals(ingredient, burger.ingredients.get(1));
-        assertEquals(ingredient1, burger.ingredients.get(0));
+        assertEquals(firstIngredient, burger.ingredients.get(1));
     }
 
     @Test
     public void getPriceTest() {
-        float price = 55;
-        float finalPrice = price * 2 + price;
 
-        Mockito.when(bun.getPrice()).thenReturn(price);
-        Mockito.when(ingredient.getPrice()).thenReturn(price);
+        Mockito.when(bun.getPrice()).thenReturn(bunPrice);
+        Mockito.when(firstIngredient.getPrice()).thenReturn(ingredientPrice);
 
         burger.setBuns(bun);
-        burger.addIngredient(ingredient);
-
+        burger.addIngredient(firstIngredient);
+        float finalPrice = bunPrice * 2 + ingredientPrice;
         assertEquals(finalPrice, burger.getPrice(), 0);
     }
 
     @Test
     public void getReceiptTest() {
 
-        Bun bun = new Bun("Булочка", 100f);
-        Ingredient sauce = new Ingredient(IngredientType.SAUCE, "Соус Барбекю", 20f);
-        Ingredient patty = new Ingredient(IngredientType.FILLING, "Котлета из говядины", 75f);
+        Bun bun = new Bun(bunName, bunPrice);
+        Ingredient ingredient = new Ingredient(ingredientType, ingredientName, ingredientPrice);
 
         burger.setBuns(bun);
-        burger.addIngredient(sauce);
-        burger.addIngredient(patty);
+        burger.addIngredient(ingredient);
 
         String expected = String.format(
-                "(==== Булочка ====)%n" +
-                        "= sauce Соус Барбекю =%n" +
-                        "= filling Котлета из говядины =%n" +
-                        "(==== Булочка ====)%n" +
+                "(==== %s ====)%n" +
+                        "= %s %s =%n" +
+                        "(==== %s ====)%n" +
                         "%n" +
-                        "Price: 295,000000%n"
+                        "Price: %.6f%n",
+                bunName,
+                ingredientType.toString().toLowerCase(),
+                ingredientName,
+                bunName,
+                bunPrice * 2 + ingredientPrice
         );
 
         assertEquals(expected, burger.getReceipt());
